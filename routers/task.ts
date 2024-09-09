@@ -45,5 +45,30 @@ taskRouter.post("/", async (req, res, next) => {
     }
 });
 
+taskRouter.get("/", async (req, res, next) => {
+    try {
+        const headerValueGet = req.get('Authorization');
+        if (!headerValueGet) {
+            return res.status(401).send({ error: 'Unauthorized: No token provided' });
+        }
+
+        const [_bearer, token] = headerValueGet.split(' ');
+        if (!token) {
+            return res.status(401).send({ error: 'Unauthorized: Token not found' });
+        }
+
+        const user = await User.findOne({ token });
+        if (!user) {
+            return res.status(401).send({ error: 'Unauthorized: Invalid token' });
+        }
+
+        const tasks = await Task.find({ user: user._id });
+
+        return res.status(200).send(tasks);
+    } catch (error) {
+        return next(error);
+    }
+});
+
 
 export default taskRouter;
