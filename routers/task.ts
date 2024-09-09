@@ -113,4 +113,40 @@ taskRouter.patch("/:id", async (req, res, next) => {
     }
 });
 
+taskRouter.delete('/:id', async (req, res, next) => {
+    try {
+        const headerValueDelete = req.get('Authorization');
+        if (!headerValueDelete) {
+            return res.status(401).send({ error: 'Unauthorized: No token provided' });
+        }
+
+        const [_bearer, token] = headerValueDelete.split(' ');
+        if (!token) {
+            return res.status(401).send({ error: 'Unauthorized: Token not found' });
+        }
+
+        const user = await User.findOne({ token });
+        if (!user) {
+            return res.status(401).send({ error: 'Unauthorized: Invalid token' });
+        }
+
+        const taskId = req.params.id;
+        const task = await Task.findById(taskId);
+        if (!task) {
+            return res.status(404).send({ error: 'Not Found: Task does not exist' });
+        }
+
+        if (!task.user.equals(user._id)) {
+            return res.status(403).send({ error: 'Forbidden: You do not delete' });
+        }
+
+        await Task.deleteOne({ _id: taskId });
+
+        return res.status(204).send();
+
+    } catch (error) {
+        next(error);
+    }
+});
+
 export default taskRouter;
